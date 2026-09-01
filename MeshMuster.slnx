@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MeshMuster.Tests/MeshMuster.Tests.csproj" />
+  <Project Path="MeshMuster/MeshMuster.csproj" />
+</Solution>

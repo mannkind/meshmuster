@@ -1,0 +1,13 @@
+bin/
+obj/
+state/
+*.import.json
+*.user
+.DS_Store
+
+# TypeScript toolchain. The three scripts below are compiled from src/ by tsc,
+# so they are build output, not source.
+node_modules/
+MeshMuster/wwwroot/app.js
+MeshMuster/wwwroot/map.js
+MeshMuster/wwwroot/location-picker.js
