@@ -2,6 +2,8 @@ using MeshMuster.Config;
 using MeshMuster.Data;
 using MeshMuster.Pages.Api;
 using MeshMuster.Services;
+using MeshMuster.Services.GitHub;
+using MeshMuster.Services.Versioning;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -42,11 +44,28 @@ builder.Services.AddDbContext<AppDbContext>(o => o
     .UseSqlite(SqliteConfiguration.ConnectionString(appOpts))
     .ReplaceService<IModelCacheKeyFactory, SecretModelCacheKeyFactory>());
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>(
+        customTestQuery: (db, ct) => db.Sources.AnyAsync(ct)
+    );
+
+builder.Services.AddSingleton<VersionSchemeRegistry>();
+builder.Services.AddSingleton<SyncGate>();
+builder.Services.AddHttpClient<GitHubReleaseClient>(c =>
+    GitHubReleaseClient.Configure(c, appOpts)
+);
+builder.Services.AddHttpClient<FlasherCatalogClient>();
+builder.Services.AddScoped<IGitHubReleaseClient, CompositeReleaseClient>();
+builder.Services.AddScoped<StreamResolver>();
+builder.Services.AddScoped<ReleaseSyncService>();
+builder.Services.AddScoped<BoardService>();
 builder.Services.AddAntiforgery(o => o.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddRazorPages()
     .AddMvcOptions(o => o.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 
+// Order matters — migrations finish before the poller writes its first release.
+builder.Services.AddHostedService<MigrationHostedService>();
+builder.Services.AddHostedService<ReleasePollHostedService>();
 
 var app = builder.Build();
 app.UseForwardedHeaders();
@@ -56,7 +75,10 @@ app.UseRouting();
 app.UseAntiforgery();
 app.MapRazorPages();
 app.MapHealthEndpoints();
+app.MapSyncEndpoints();
+app.MapBoardPreviewEndpoints();
 
 app.Run(appOpts.GetListenUrl());
 
+// So the E2E fixture can reach the entry point.
 public partial class Program;

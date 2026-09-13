@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] &middot; MeshMuster</title>
+    <link rel="stylesheet" href="~/style.css" asp-append-version="true" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"
+            integrity="sha384-pb6hrQvo4s23cEUFtj0CZkzGE3jyK3pj26RIupXXxhSrrcUA/Cn0lZgcCrGH0t6L" crossorigin="anonymous"></script>
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" asp-page="/Index">MeshMuster</a>
+    <nav>
+        <a asp-page="/Index">Devices</a>
+        <a asp-page="/Map">Map</a>
+        <a asp-page="/Boards">Boards</a>
+        <a asp-page="/Sources">Sources</a>
+    </nav>
+</header>
+
+<main>
+    @if (TempData["Flash"] is string flash && flash.Length > 0)
+    {
+        <div class="flash">@flash</div>
+    }
+    @RenderBody()
+</main>
+
+<script src="~/app.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,148 @@
+@page
+@model BoardsModel
+@{
+    ViewData["Title"] = "Boards";
+}
+
+<h1>Boards</h1>
+<p class="summary">
+    A board's pattern picks its file out of a release. Some releases carry several hundred
+    assets, so use the preview to confirm a pattern hits what you expect before you trust the
+    download link on a device.
+</p>
+
+<div class="panel" style="padding:1rem; margin-bottom:1rem">
+    <form method="post" asp-page-handler="Create">
+        <div class="grid2">
+            <div class="field">
+                <label for="board-name">Board name</label>
+                <input id="board-name" type="text" name="Name" placeholder="Ikoka Stick 30dbm" />
+            </div>
+            <div class="field">
+                <label for="board-description">Description</label>
+                <input id="board-description" type="text" name="Description"
+                       placeholder="Use the Xiao nRF build" />
+            </div>
+        </div>
+        <button type="submit" class="btn-primary">Add board</button>
+    </form>
+</div>
+
+@if (Model.Boards.Count == 0)
+{
+    <div class="panel"><p class="empty">No boards yet.</p></div>
+}
+
+@foreach (var board in Model.Boards)
+{
+    @* Name lives in an input now, not the card's text. *@
+    <div class="panel" data-board="@board.Name" style="padding:1rem; margin-bottom:1rem"
+         x-data="{ preview: null, loading: false,
+                   async load() {
+                       this.loading = true;
+                       const r = await fetch('/api/boards/@board.Id/preview');
+                       this.preview = await r.json();
+                       this.loading = false;
+                   } }">
+        <div class="actions" style="margin-top:0; justify-content:space-between; align-items:flex-start">
+            <form method="post" asp-page-handler="Edit" class="board-heading"
+                  x-data="{ editing: false,
+                            open() { this.editing = true; $nextTick(() => $refs.name.focus()); },
+                            cancel() {
+                                this.editing = false;
+                                $refs.name.value = $refs.name.defaultValue;
+                                $refs.notes.value = $refs.notes.defaultValue;
+                            } }">
+                <input type="hidden" name="boardId" value="@board.Id" />
+
+                <button type="button" class="board-view" x-show="!editing" x-on:click="open()"
+                        title="Click to edit">
+                    <strong>@board.Name</strong>
+                    @if (board.Description.Length > 0)
+                    {
+                        <span class="muted">&mdash; @board.Description</span>
+                    }
+                    else
+                    {
+                        <span class="muted board-hint">click to edit</span>
+                    }
+                </button>
+
+                <span class="board-fields" x-show="editing" x-cloak
+                      x-on:keydown.escape.prevent="cancel()">
+                    <input type="text" name="name" value="@board.Name" x-ref="name"
+                           aria-label="Board name" />
+                    <input type="text" name="description" value="@board.Description" x-ref="notes"
+                           aria-label="Board description" placeholder="e.g. use the Xiao nRF build" />
+                    <button type="submit" class="btn-small board-save">Save</button>
+                    <button type="button" class="btn-small board-cancel" x-on:click="cancel()">Cancel</button>
+                </span>
+
+                <span class="muted nowrap">
+                    @(Model.DeviceCounts.GetValueOrDefault(board.Id)) device(s)
+                </span>
+            </form>
+            <div class="actions" style="margin:0">
+                <button type="button" class="btn-small" x-on:click="load()"
+                        x-text="loading ? 'checking…' : 'preview matches'">preview matches</button>
+                <form method="post" asp-page-handler="Delete" style="display:inline"
+                      x-on:submit="if (!confirm('Delete this board?')) $event.preventDefault()">
+                    <input type="hidden" name="boardId" value="@board.Id" />
+                    <button type="submit" class="btn-small btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        <table class="cards">
+            <thead><tr><th>Source</th><th>Asset filename pattern</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var source in Model.Sources)
+            {
+                <tr>
+                    <td class="card-title nowrap">@source.DisplayName</td>
+                    <td class="stack" data-label="Asset filename pattern">
+                        <form method="post" asp-page-handler="Pattern" class="secret"
+                              id="pattern-@board.Id-@source.Id">
+                            <input type="hidden" name="boardId" value="@board.Id" />
+                            <input type="hidden" name="sourceId" value="@source.Id" />
+                            <input class="value mono" type="text" name="pattern"
+                                   value="@Model.PatternFor(board, source.Id)"
+                                   placeholder="e.g. Xiao_nRF52840.*\.uf2$" />
+                            <button type="submit" class="btn-small pattern-save">Save</button>
+                        </form>
+                    </td>
+                    <td class="muted nowrap" data-label="Matches">
+                        <template x-if="preview">
+                            <span x-text="(preview.find(p => p.sourceName === '@source.DisplayName')?.matches.length ?? 0) + ' match(es)'"></span>
+                        </template>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        <template x-if="preview">
+            <div style="margin-top:.75rem">
+                <template x-for="p in preview" :key="p.sourceName">
+                    <div style="margin-bottom:.5rem">
+                        <span class="muted" x-text="p.sourceName + ' — ' + p.releaseLabel"></span>
+                        <template x-if="!p.isValid">
+                            <span class="badge badge-stale">invalid pattern</span>
+                        </template>
+                        <ul class="preview-list mono">
+                            <template x-for="m in p.matches.slice(0, 8)" :key="m">
+                                <li x-text="m"></li>
+                            </template>
+                        </ul>
+                        <template x-if="p.matches.length > 8">
+                            <span class="muted" x-text="'+ ' + (p.matches.length - 8) + ' more'"></span>
+                        </template>
+                        <template x-if="p.pattern && p.matches.length === 0">
+                            <span class="badge badge-stale">no matches</span>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+}
