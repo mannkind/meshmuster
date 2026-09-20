@@ -1,0 +1,48 @@
+@model MeshMuster.Services.DeviceUpdateStatus
+@switch (Model.State)
+{
+    case UpdateState.NoChannelSet:
+        <span class="mono">@(Model.InstalledLabel.Length > 0 ? Model.InstalledLabel : "—")</span>
+        <span class="channel">no channel set</span>
+        break;
+
+    case UpdateState.UpToDate:
+        <span class="mono">@Model.InstalledLabel</span>
+        <span class="badge badge-ok">current</span>
+        <span class="channel">@Model.SourceName</span>
+        break;
+
+    case UpdateState.UpdateAvailable:
+        <span class="mono">@Model.InstalledLabel</span>
+        @* The count is worth knowing, just not a permanent spot on the chip. *@
+        <a class="badge badge-update" href="@(Model.MatchedAsset?.DownloadUrl ?? Model.Latest!.HtmlUrl)"
+           title="@(Model.ReleasesBehind > 1 ? $"{Model.ReleasesBehind} releases behind" : "1 release behind")">
+            &uarr; @Model.Latest!.VersionLabel
+        </a>
+        <span class="channel">
+            @Model.SourceName
+            @if (Model.MatchedAsset is not null)
+            {
+                @: &middot; @Model.MatchedAsset.Name
+            }
+        </span>
+        break;
+
+    case UpdateState.Unknown:
+        <span class="mono">@(Model.InstalledLabel.Length > 0 ? Model.InstalledLabel : "—")</span>
+        <span class="badge badge-unknown">unknown</span>
+        <span class="channel">
+            @Model.SourceName
+            @if (Model.Latest is not null)
+            {
+                @: &middot; latest is @Model.Latest.VersionLabel
+            }
+        </span>
+        break;
+
+    case UpdateState.SourceStale:
+        <span class="mono">@(Model.InstalledLabel.Length > 0 ? Model.InstalledLabel : "—")</span>
+        <span class="badge badge-stale">source error</span>
+        <span class="channel">@Model.SourceName could not be polled</span>
+        break;
+}

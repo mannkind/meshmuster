@@ -1,0 +1,82 @@
+@model MeshMuster.Pages.Models.DeviceTableView
+@{
+    var pm = Model.Page;
+}
+@* One markup for both shapes; below the breakpoint CSS turns each row into a card. *@
+<div class="panel table-scroll">
+    <table class="cards">
+        <thead>
+        <tr>
+            <th>
+                <a asp-page="/Index" asp-route-sort="name"
+                   asp-route-desc="@pm.SortLink("name").Desc">Name<span class="sort">@pm.SortIndicator("name")</span></a>
+            </th>
+            <th>Key</th>
+            <th>
+                <a asp-page="/Index" asp-route-sort="board"
+                   asp-route-desc="@pm.SortLink("board").Desc">Board<span class="sort">@pm.SortIndicator("board")</span></a>
+            </th>
+            <th>
+                <a asp-page="/Index" asp-route-sort="firmware"
+                   asp-route-desc="@pm.SortLink("firmware").Desc">Firmware<span class="sort">@pm.SortIndicator("firmware")</span></a>
+            </th>
+            <th>
+                <a asp-page="/Index" asp-route-sort="bootloader"
+                   asp-route-desc="@pm.SortLink("bootloader").Desc">Bootloader<span class="sort">@pm.SortIndicator("bootloader")</span></a>
+            </th>
+            <th>
+                <a asp-page="/Index" asp-route-sort="updated"
+                   asp-route-desc="@pm.SortLink("updated").Desc">Last updated<span class="sort">@pm.SortIndicator("updated")</span></a>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td class="card-title">
+                    <a class="device-name" asp-page="/DeviceDetail" asp-route-id="@row.Device.Id">@row.Device.Name</a>
+                    <div class="row-actions">
+                        <a class="btn btn-small" asp-page="/DeviceDetail" asp-route-id="@row.Device.Id">Details</a>
+                        <a class="btn btn-small" asp-page="/DeviceEdit" asp-route-id="@row.Device.Id">Edit</a>
+                        <a class="btn btn-small" asp-page="/DeviceDetail" asp-route-id="@row.Device.Id"
+                           asp-route-record="true">Record update</a>
+                    </div>
+                </td>
+                <td class="mono nowrap" data-label="Key">
+                    @if (row.PublicKeyPrefix is null)
+                    {
+                        <span class="muted">&mdash;</span>
+                    }
+                    else
+                    {
+                        @row.PublicKeyPrefix
+                    }
+                </td>
+                <td data-label="Board">
+                    @if (row.Device.Board is null)
+                    {
+                        <span class="muted">&mdash;</span>
+                    }
+                    else
+                    {
+                        @row.Device.Board.Name
+                    }
+                </td>
+                <td data-label="Firmware"><partial name="_VersionCell" model="row.Firmware" /></td>
+                <td data-label="Bootloader"><partial name="_VersionCell" model="row.Bootloader" /></td>
+                <td class="nowrap" data-label="Updated">
+                    @if (row.LastFlashed is null)
+                    {
+                        <span class="muted">never</span>
+                    }
+                    else
+                    {
+                        @row.LastFlashed.Value.ToString("yyyy-MM-dd")
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

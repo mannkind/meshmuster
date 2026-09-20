@@ -58,6 +58,8 @@ builder.Services.AddHttpClient<FlasherCatalogClient>();
 builder.Services.AddScoped<IGitHubReleaseClient, CompositeReleaseClient>();
 builder.Services.AddScoped<StreamResolver>();
 builder.Services.AddScoped<ReleaseSyncService>();
+builder.Services.AddScoped<UpdateStatusService>();
+builder.Services.AddScoped<DeviceService>();
 builder.Services.AddScoped<BoardService>();
 builder.Services.AddAntiforgery(o => o.HeaderName = "X-XSRF-TOKEN");
 builder.Services.AddRazorPages()

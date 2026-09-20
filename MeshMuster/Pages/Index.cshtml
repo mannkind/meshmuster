@@ -1,0 +1,77 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Devices";
+
+    var sortOptions = new[]
+    {
+        ("", "Needs attention"),
+        ("name", "Name"),
+        ("board", "Board"),
+        ("firmware", "Firmware"),
+        ("bootloader", "Bootloader"),
+        ("updated", "Last updated"),
+    };
+}
+
+<h1>Devices</h1>
+
+<p class="summary">
+    @if (Model.TotalDevices == 0)
+    {
+        <span>Nothing tracked yet.</span>
+    }
+    else
+    {
+        <strong>@Model.FirmwareUpdatesAvailable</strong>
+        @: of <strong>@Model.TotalDevices</strong> devices have firmware updates
+        @if (Model.BootloaderUpdatesAvailable > 0)
+        {
+            @: &middot; <strong>@Model.BootloaderUpdatesAvailable</strong> have bootloader updates
+        }
+    }
+    @if (Model.AnySourceStale)
+    {
+        <span class="badge badge-stale">a source failed to poll</span>
+    }
+</p>
+
+<div class="actions">
+    <a class="btn btn-primary" asp-page="/DeviceEdit">Add device</a>
+    <form method="post" asp-page="/Sources" asp-page-handler="Sync" style="display:inline">
+        <button type="submit">Check for updates</button>
+    </form>
+</div>
+
+@if (Model.TotalDevices == 0)
+{
+    <div class="panel"><p class="empty">No devices yet. Add one.</p></div>
+}
+else
+{
+    @* Cards hide the header row and its sort links; this GET form keeps sorting. *@
+    <form method="get" class="card-sort" x-data="{}">
+        <label for="sort-by">Sort</label>
+        <select id="sort-by" name="sort" x-on:change="$el.form.submit()">
+            @foreach (var (value, label) in sortOptions)
+            {
+                <option value="@value"
+                        selected="@string.Equals(Model.Sort ?? "", value, StringComparison.OrdinalIgnoreCase)">
+                    @label
+                </option>
+            }
+        </select>
+        <button type="submit" name="desc" value="@((!Model.Desc).ToString().ToLowerInvariant())"
+                title="@(Model.Desc ? "Sort ascending" : "Sort descending")"
+                aria-label="@(Model.Desc ? "Sort ascending" : "Sort descending")">
+            @(Model.Desc ? "↓" : "↑")
+        </button>
+        <noscript><button type="submit">Apply</button></noscript>
+    </form>
+
+    @foreach (var group in Model.Groups)
+    {
+        <h2>@DeviceRole.PluralLabel(group.Role)</h2>
+        <partial name="_DeviceTable" model="new DeviceTableView { Page = Model, Rows = group.Rows }" />
+    }
+}
