@@ -1,0 +1,32 @@
+# lefthook re-syncs hooks on every run and warns because core.hooksPath points at the
+# global dispatcher. The dispatcher calls .git/hooks itself, so the sync is unwanted noise.
+no_auto_install: true
+
+pre-commit:
+  jobs:
+    - name: format-cs
+      glob: "*.cs"
+      skip: [merge, rebase]
+      run: dotnet format --include {staged_files} --no-restore
+      stage_fixed: true
+
+    - name: format-ts
+      glob: "*.ts"
+      skip: [merge, rebase]
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+
+pre-push:
+  piped: true
+  jobs:
+    # Emits wwwroot/*.js as well as type-checking, so the E2E suite has scripts to serve.
+    - name: build-ts
+      run: npx tsc
+    - name: build
+      run: dotnet build
+    - name: unit-tests
+      run: dotnet test MeshMuster.Tests
+    - name: e2e-tests
+      only:
+        - ref: main
+      run: dotnet test MeshMuster.E2E -c Release
