@@ -84,9 +84,7 @@ public class SchemaTests
 
         Assert.Multiple(async () =>
         {
-            Assert.That(await this.Db.MigrationMarked("001_sources.sql"), Is.True);
-            Assert.That(await this.Db.MigrationMarked("002_nodes.sql"), Is.True);
-            Assert.That(await this.Db.MigrationMarked("003_recording.sql"), Is.True);
+            Assert.That(await this.Db.MigrationMarked("001_init.sql"), Is.True);
             // Running twice must not seed a second copy of the four sources.
             Assert.That(await this.Db.Count("sources"), Is.EqualTo(4));
             Assert.That(await this.Db.Count("streams"), Is.EqualTo(12));
