@@ -1,0 +1,135 @@
+@page "{id:guid?}"
+@model DeviceEditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Add device" : "Edit device";
+}
+
+<h1>@(Model.IsNew ? "Add device" : "Edit device")</h1>
+<p class="summary">
+    The stream a device follows is worked out from its channel and role, so changing the role
+    moves it onto the matching stream automatically.
+</p>
+
+<div class="panel" style="padding:1rem">
+<form method="post">
+    <div asp-validation-summary="All" class="muted"></div>
+
+    <div class="grid2">
+        <div class="field">
+            <label asp-for="Name">Name</label>
+            <input asp-for="Name" type="text" autofocus />
+        </div>
+
+        <div class="field">
+            <label asp-for="Role">Role</label>
+            <select asp-for="Role">
+                @foreach (var role in DeviceRole.All)
+                {
+                    <option value="@role">@DeviceRole.Label(role)</option>
+                }
+            </select>
+        </div>
+
+        <div class="field">
+            <label asp-for="BoardId">Board</label>
+            <select asp-for="BoardId" asp-items="Model.Boards">
+                <option value="">— none —</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label asp-for="FirmwareSourceId">Firmware channel</label>
+            <select asp-for="FirmwareSourceId" asp-items="Model.FirmwareSources">
+                <option value="">— none —</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label asp-for="BootloaderSourceId">Bootloader channel</label>
+            <select asp-for="BootloaderSourceId" asp-items="Model.BootloaderSources">
+                <option value="">— none —</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="grid2">
+        @* new-password, not off: browsers ignore off and autofill a saved login over the real key. *@
+        <div class="field">
+            <label asp-for="PrivateKey">Private key</label>
+            <div class="secret" x-data="{ shown: false }">
+                <input asp-for="PrivateKey" type="password" value="@Model.PrivateKey" x-bind:type="shown ? 'text' : 'password'"
+                       class="value mono" autocomplete="new-password" />
+                <button type="button" class="btn-small" x-on:click="shown = !shown"
+                        x-text="shown ? 'hide' : 'reveal'">reveal</button>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="AdminPassword">Admin password</label>
+            <div class="secret" x-data="{ shown: false }">
+                <input asp-for="AdminPassword" type="password" value="@Model.AdminPassword" x-bind:type="shown ? 'text' : 'password'"
+                       class="value mono" autocomplete="new-password" />
+                <button type="button" class="btn-small" x-on:click="shown = !shown"
+                        x-text="shown ? 'hide' : 'reveal'">reveal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid2">
+        <div class="field">
+            <label asp-for="Latitude">Latitude</label>
+            <input asp-for="Latitude" type="text" inputmode="decimal" class="mono"
+                   placeholder="47.6062 — optional, puts the device on the map" />
+        </div>
+
+        <div class="field">
+            <label asp-for="Longitude">Longitude</label>
+            <input asp-for="Longitude" type="text" inputmode="decimal" class="mono"
+                   placeholder="-122.3321" />
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="actions" style="margin:0 0 .4rem">
+            <button type="button" id="location-clear" class="btn-small">Clear location</button>
+            <span class="muted" id="location-hint">Click the map to set a position, or drag the pin.</span>
+        </div>
+        <div id="location-picker" class="table-scroll"></div>
+    </div>
+
+    <div class="field">
+        <label asp-for="Notes">Notes</label>
+        <textarea asp-for="Notes"></textarea>
+    </div>
+
+    <div class="field">
+        <label><input asp-for="IsActive" type="checkbox" style="width:auto" /> Active</label>
+    </div>
+
+    <div class="actions">
+        <button type="submit" class="btn-primary">Save</button>
+        @if (Model.IsNew)
+        {
+            <a class="btn" asp-page="/Index">Cancel</a>
+        }
+        else
+        {
+            <a class="btn" asp-page="/DeviceDetail" asp-route-id="@Model.Id">Cancel</a>
+        }
+    </div>
+</form>
+</div>
+
+<p class="summary">
+    Versions are not set here. Use <strong>Record update</strong> on the device page, so every
+    version change lands in the history with a date.
+</p>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+    <script type="application/json" id="nearby-devices">@Json.Serialize(Model.Nearby)</script>
+    <script src="~/location-picker.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,65 @@
+@page
+@model MapModel
+@{
+    ViewData["Title"] = "Map";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
+
+<h1>Map</h1>
+<p class="summary">
+    @if (Model.Markers.Count == 0)
+    {
+        <span>No device has coordinates yet. Add them on a device's edit page.</span>
+    }
+    else
+    {
+        <strong>@Model.Markers.Count</strong>
+        @: located
+        @if (Model.NeedingAttention > 0)
+        {
+            @: &middot; <strong>@Model.NeedingAttention</strong> needing attention
+        }
+    }
+</p>
+
+@if (Model.Markers.Count > 0)
+{
+    <div class="panel">
+        <div id="map" role="img" aria-label="Map of tracked MeshCore devices"></div>
+    </div>
+
+    <p class="summary map-legend">
+        <span class="dot dot-update"></span> update available
+        <span class="dot dot-unknown"></span> version unknown
+        <span class="dot dot-stale"></span> source error
+        <span class="dot dot-current"></span> current
+    </p>
+}
+
+@if (Model.Unlocated.Count > 0)
+{
+    <h2>No location</h2>
+    <div class="panel" style="padding:1rem">
+        <p class="muted" style="margin-top:0">
+            @Model.Unlocated.Count device(s) have no coordinates, so they are not on the map.
+        </p>
+        <ul class="preview-list">
+            @foreach (var device in Model.Unlocated)
+            {
+                <li><a asp-page="/DeviceDetail" asp-route-id="@device.Id">@device.Name</a></li>
+            }
+        </ul>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.Markers.Count > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+                integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+        <script type="application/json" id="map-data">@Json.Serialize(Model.Markers)</script>
+        <script src="~/map.js" asp-append-version="true"></script>
+    }
+}

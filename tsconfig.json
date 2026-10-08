@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "outDir": "MeshMuster/wwwroot",
+    "rootDir": "src",
+    "types": ["leaflet"],
+    "newLine": "lf",
+    "removeComments": false
+  },
+  "include": ["src/**/*.ts"]
+}

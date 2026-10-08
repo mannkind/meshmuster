@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+**/state/
+*.import.json
+.git/
+.github/
+**/.DS_Store

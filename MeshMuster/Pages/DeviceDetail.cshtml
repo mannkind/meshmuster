@@ -1,0 +1,178 @@
+@page "{id:guid}"
+@model DeviceDetailModel
+@{
+    ViewData["Title"] = Model.Device.Name;
+}
+
+<div x-data="{ flashOpen: @(Model.Record ? "true" : "false"), fwOther: false, blOther: false }">
+
+<h1>@Model.Device.Name</h1>
+<p class="summary">
+    @DeviceRole.Label(Model.Device.Role)
+    @if (Model.Device.Board is not null)
+    {
+        @: &middot; @Model.Device.Board.Name
+    }
+    @if (!Model.Device.IsActive)
+    {
+        <span class="badge badge-none">inactive</span>
+    }
+</p>
+
+<div class="actions">
+    <a class="btn" asp-page="/DeviceEdit" asp-route-id="@Model.Device.Id">Edit</a>
+    <button type="button" x-on:click="flashOpen = true">Record update</button>
+    <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Device.Id"
+          x-on:submit="if (!confirm('Delete this device and its update history?')) $event.preventDefault()"
+          style="display:inline">
+        <button type="submit" class="btn-danger">Delete</button>
+    </form>
+</div>
+
+<div class="panel" style="padding:1rem">
+    <dl class="detail">
+        <dt>Firmware</dt>
+        <dd><partial name="_VersionCell" model="Model.Firmware" /></dd>
+
+        <dt>Bootloader</dt>
+        <dd><partial name="_VersionCell" model="Model.Bootloader" /></dd>
+
+        @if (Model.PublicKey is not null)
+        {
+            <dt>Public key</dt>
+            <dd>
+                <span class="badge badge-ok mono">@Model.PublicKeyPrefix</span>
+                <span class="mono muted">@Model.PublicKey</span>
+            </dd>
+        }
+
+        <dt>Private key</dt>
+        <dd><partial name="_Secret" model="@(new SecretView { Name = "Private key", Value = Model.Device.PrivateKey })" /></dd>
+
+        <dt>Admin password</dt>
+        <dd><partial name="_Secret" model="@(new SecretView { Name = "Admin password", Value = Model.Device.AdminPassword })" /></dd>
+
+        @if (Model.Device.Notes.Length > 0)
+        {
+            <dt>Notes</dt>
+            <dd>@Model.Device.Notes</dd>
+        }
+    </dl>
+</div>
+
+<h2>Update history</h2>
+<div class="panel">
+    @if (Model.History.Count == 0)
+    {
+        <p class="empty">No updates recorded yet.</p>
+    }
+    else
+    {
+        <table class="cards">
+            <thead>
+            <tr><th>Date</th><th>Firmware</th><th>Bootloader</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var flash in Model.History)
+            {
+                <tr>
+                    <td class="card-title nowrap">@flash.OccurredAt.ToString("yyyy-MM-dd")</td>
+                    <td class="mono" data-label="Firmware">
+                        @if (flash.ChangedFirmware)
+                        {
+                            @(flash.FirmwareFromLabel.Length > 0 ? flash.FirmwareFromLabel : "—")
+                            @: &rarr; @flash.FirmwareToLabel
+                        }
+                        else
+                        {
+                            <span class="muted">&mdash;</span>
+                        }
+                    </td>
+                    <td class="mono" data-label="Bootloader">
+                        @if (flash.ChangedBootloader)
+                        {
+                            @(flash.BootloaderFromLabel.Length > 0 ? flash.BootloaderFromLabel : "—")
+                            @: &rarr; @flash.BootloaderToLabel
+                        }
+                        else
+                        {
+                            <span class="muted">&mdash;</span>
+                        }
+                    </td>
+                    <td data-label="Note">@flash.Note</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+</div>
+
+<div class="modal-backdrop" x-show="flashOpen" x-cloak x-on:keydown.escape.window="flashOpen = false">
+    <div class="modal">
+        <h3>Record update</h3>
+        <form method="post" asp-page-handler="Flash" asp-route-id="@Model.Device.Id">
+            <div class="field">
+                <label for="occurred">Date</label>
+                <input type="date" id="occurred" name="OccurredAt" value="@Model.Today.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="field">
+                <label for="fw">Firmware</label>
+                @if (Model.FirmwareChoices.Count == 0)
+                {
+                    <p class="muted">No firmware channel set for this device, or no releases synced yet.</p>
+                }
+                else
+                {
+                    <select id="fw" name="FirmwareChoice"
+                            x-on:change="fwOther = $event.target.value === '@DeviceDetailModel.OtherChoice'">
+                        <option value="">— leave unchanged —</option>
+                        @foreach (var release in Model.FirmwareChoices)
+                        {
+                            <option value="@release.Id">@release.VersionLabel @(release.Detail.Length > 0 ? $"({release.Detail})" : "")</option>
+                        }
+                        <option value="@DeviceDetailModel.OtherChoice">not listed / unknown</option>
+                    </select>
+                }
+                <div x-show="fwOther" x-cloak style="margin-top:.4rem">
+                    <input type="text" name="FirmwareLabel" placeholder="version as you know it, e.g. 1.09.x" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="bl">Bootloader</label>
+                @if (Model.BootloaderChoices.Count == 0)
+                {
+                    <p class="muted">No bootloader channel set for this device, or no releases synced yet.</p>
+                }
+                else
+                {
+                    <select id="bl" name="BootloaderChoice"
+                            x-on:change="blOther = $event.target.value === '@DeviceDetailModel.OtherChoice'">
+                        <option value="">— leave unchanged —</option>
+                        @foreach (var release in Model.BootloaderChoices)
+                        {
+                            <option value="@release.Id">@release.VersionLabel @(release.Detail.Length > 0 ? $"({release.Detail})" : "")</option>
+                        }
+                        <option value="@DeviceDetailModel.OtherChoice">not listed / unknown</option>
+                    </select>
+                }
+                <div x-show="blOther" x-cloak style="margin-top:.4rem">
+                    <input type="text" name="BootloaderLabel" placeholder="version as you know it" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="note">Note</label>
+                <input type="text" id="note" name="Note" placeholder="optional" />
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn-primary">Record</button>
+                <button type="button" x-on:click="flashOpen = false">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>

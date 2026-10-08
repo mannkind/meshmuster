@@ -1,0 +1,111 @@
+@page
+@model SourcesModel
+@{
+    ViewData["Title"] = "Sources";
+}
+
+<h1>Sources</h1>
+<p class="summary">
+    The four upstream repositories this polls. Release history is cached locally, so pages stay
+    fast and a GitHub outage never makes a device look up to date when it is not.
+</p>
+
+<div class="actions">
+    <form method="post" asp-page-handler="Sync">
+        <button type="submit" class="btn-primary">Check now</button>
+    </form>
+</div>
+
+@foreach (var row in Model.Rows)
+{
+    <div class="panel" style="padding:1rem; margin-bottom:1rem">
+        <div class="actions" style="margin-top:0; justify-content:space-between">
+            <div>
+                <strong>@row.Source.DisplayName</strong>
+                @if (!row.Source.IsEnabled)
+                {
+                    <span class="badge badge-none">disabled</span>
+                }
+                @if (row.Source.LastPollError.Length > 0)
+                {
+                    <span class="badge badge-stale">poll failed</span>
+                }
+                <div class="muted mono">
+                    <a href="@row.Source.HtmlUrl">@row.Source.RepoSlug</a>
+                </div>
+            </div>
+            <div class="actions" style="margin:0">
+                <form method="post" asp-page-handler="Prereleases" style="display:inline">
+                    <input type="hidden" name="sourceId" value="@row.Source.Id" />
+                    <button type="submit" class="btn-small">
+                        @(row.Source.IncludePrereleases ? "Ignore prereleases" : "Include prereleases")
+                    </button>
+                </form>
+                <form method="post" asp-page-handler="Toggle" style="display:inline">
+                    <input type="hidden" name="sourceId" value="@row.Source.Id" />
+                    <button type="submit" class="btn-small">
+                        @(row.Source.IsEnabled ? "Disable" : "Enable")
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <dl class="detail">
+            <dt>Kind</dt>
+            <dd>@row.Source.Kind</dd>
+
+            <dt>Prereleases</dt>
+            <dd>
+                @if (row.Source.IncludePrereleases)
+                {
+                    <span>included</span>
+                }
+                else
+                {
+                    <span>ignored</span>
+                }
+            </dd>
+
+            <dt>Streams</dt>
+            <dd>@string.Join(", ", row.Streams.Select(s => s.DisplayName))</dd>
+
+            <dt>Releases cached</dt>
+            <dd>@row.ReleaseCount</dd>
+
+            <dt>Latest</dt>
+            <dd>
+                @if (row.Latest is null)
+                {
+                    <span class="muted">nothing synced yet</span>
+                }
+                else
+                {
+                    <span class="mono">@row.Latest.VersionLabel</span>
+                    @if (row.Latest.Detail.Length > 0)
+                    {
+                        <span class="muted"> @row.Latest.Detail</span>
+                    }
+                    <span class="channel">@row.Latest.Tag</span>
+                }
+            </dd>
+
+            <dt>Last polled</dt>
+            <dd>
+                @if (row.Source.LastPolledAt is null)
+                {
+                    <span class="muted">never</span>
+                }
+                else
+                {
+                    @row.Source.LastPolledAt.Value.ToString("yyyy-MM-dd HH:mm") <span class="muted">UTC</span>
+                }
+            </dd>
+
+            @if (row.Source.LastPollError.Length > 0)
+            {
+                <dt>Error</dt>
+                <dd class="mono" style="color:var(--stale-ink)">@row.Source.LastPollError</dd>
+            }
+        </dl>
+    </div>
+}
