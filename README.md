@@ -70,12 +70,13 @@ inside its firmware source.
 
 One release can serve several roles. mikecarper builds repeater and room from a single
 `repeater-room-v` tag where meshcore-dev gives rooms their own, and a bare `v` tag gets sorted by
-the files inside it, so one tag can land in five streams. mikecarper spells its sensor channel
-`utility-v`, though the releases themselves say sensor builds.
+the files inside it, so one tag can land in five streams.
 
-A tag that names its own role is taken at its word. Only a bare `v` gets read from its files,
-which is what makes mikecarper's back catalog usable — those tags shipped companion, repeater
-and room-server firmware together until they split apart at 1.17.1.2.
+Starting with 1.18, mikecarper ships ESP32 repeater, room and sensor firmware under
+`full-profiles-v` and nRF52 firmware in `lora-ota-v`, `lora-ota-2-v` and `lora-ota-3-v`.
+Each bundle appears in the version picker for the roles its files actually contain.
+`utility-v` is a sensor release before 1.18; from 1.18 on it contains migration tools,
+not selectable firmware.
 
 Bootloaders have no roles; one stream serves everything.
 

@@ -100,12 +100,28 @@ public class MeshCoreVersionSchemeTests
             Is.EqualTo(new[] { "repeater", "companion", "room", "sensor" }));
     }
 
+    [TestCase("utility-v1.18.0.2-halo-keymind-cascade-dev-a723af94")]
     [TestCase("logging-v1.16.09-halo-keymind-cascade-dev-0c4ed3ac")]
     [TestCase("full-profiles-v1.17.1.1-halo-keymind-cascade-759a35fc")]
     [TestCase("nrf52-mota-v1.16.09-to-v1.17.1.1-halo-keymind-cascade")]
     [TestCase("tbeam1w-lna-v1.17.1.1-d28c9f74")]
     public void Rejects_mikecarper_variant_builds(string tag) =>
         Assert.That(this.Mikecarper.TryParse(tag, Omnibus, out _), Is.False);
+
+    [TestCase("full-profiles-v")]
+    [TestCase("lora-ota-v")]
+    [TestCase("lora-ota-2-v")]
+    [TestCase("lora-ota-3-v")]
+    public void Split_firmware_bundles_feed_only_the_roles_they_ship(string prefix)
+    {
+        var tag = prefix + "1.18.0.2-halo-keymind-cascade-dev-a723af94";
+        string[] assets = ["RAK_4631_repeater_lora_ota_no_external_sensors-full-ota.uf2"];
+        Assert.That(this.Mikecarper.TryParse(tag, assets, out var parsed), Is.True);
+        Assert.That(parsed!.StreamSlugs, Is.EqualTo(new[] { "repeater" }));
+        Assert.That(parsed.VersionLabel, Is.EqualTo("1.18.0.2"));
+        Assert.That(this.Mikecarper.TryParse(tag, [], out _), Is.False);
+        Assert.That(this.Scheme.TryParse(tag, assets, out _), Is.False);
+    }
 
     [Test]
     public void Sort_keys_order_versions_as_strings()
@@ -124,7 +140,7 @@ public class MeshCoreVersionSchemeTests
     }
 
     private readonly MeshCoreVersionScheme Scheme = new();
-    private readonly MeshCoreVersionScheme Mikecarper = new();
+    private readonly MeshCoreVersionScheme Mikecarper = new(mikecarper: true);
 
     private static readonly string[] Companion = ["Xiao_companion-v1.uf2"];
     private static readonly string[] Repeater = ["Heltec_t096_repeater-v1.uf2"];

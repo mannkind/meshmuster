@@ -30,6 +30,10 @@ public class UpdateStatusService
         public IReadOnlyDictionary<Guid, IReadOnlyList<string>> SortKeysByStream { get; init; } =
             new Dictionary<Guid, IReadOnlyList<string>>();
 
+        /// <summary>Releases sharing a stream and version, newest published first.</summary>
+        public IReadOnlyDictionary<(Guid StreamId, string SortKey), IReadOnlyList<Release>> ReleasesByVersion { get; init; } =
+            new Dictionary<(Guid, string), IReadOnlyList<Release>>();
+
         public IReadOnlyDictionary<Guid, ReleaseStream> StreamsById { get; init; } =
             new Dictionary<Guid, ReleaseStream>();
 
@@ -56,6 +60,7 @@ public class UpdateStatusService
 
         var latest = new Dictionary<Guid, Release>();
         var sortKeys = new Dictionary<Guid, List<string>>();
+        var byVersion = new Dictionary<(Guid, string), List<Release>>();
 
         foreach (var release in candidates)
         {
@@ -66,9 +71,13 @@ public class UpdateStatusService
             if (!sortKeys.TryGetValue(release.StreamId, out var keys))
                 sortKeys[release.StreamId] = keys = [];
             keys.Add(release.SortKey);
+            if (!byVersion.TryGetValue((release.StreamId, release.SortKey), out var tied))
+                byVersion[(release.StreamId, release.SortKey)] = tied = [];
+            tied.Add(release);
 
             if (!latest.TryGetValue(release.StreamId, out var best) ||
-                string.CompareOrdinal(release.SortKey, best.SortKey) > 0)
+                string.CompareOrdinal(release.SortKey, best.SortKey) > 0 ||
+                (release.SortKey == best.SortKey && release.PublishedAt > best.PublishedAt))
             {
                 latest[release.StreamId] = release;
             }
@@ -90,6 +99,9 @@ public class UpdateStatusService
             StreamsById = streams,
             SourcesById = sources,
             BoardPatterns = patterns,
+            ReleasesByVersion = byVersion.ToDictionary(
+                kv => kv.Key,
+                kv => (IReadOnlyList<Release>)kv.Value.OrderByDescending(r => r.PublishedAt).ToList()),
         };
     }
 
@@ -226,6 +238,13 @@ public class UpdateStatusService
         if (!snapshot.BoardPatterns.TryGetValue((boardId.Value, sourceId), out var pattern))
             return null;
 
-        return AssetMatcher.Match(release.Assets, pattern).FirstOrDefault();
+        // Same version only; an older release with a matching file is a different version.
+        foreach (var tied in snapshot.ReleasesByVersion[(release.StreamId, release.SortKey)])
+        {
+            var match = AssetMatcher.Match(tied.Assets, pattern).FirstOrDefault();
+            if (match is not null) return match;
+        }
+
+        return null;
     }
 }

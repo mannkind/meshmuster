@@ -175,6 +175,54 @@ public class UpdateStatusServiceTests
     }
 
     [Test]
+    public async Task Matches_the_board_asset_on_a_same_version_sibling_not_an_older_release()
+    {
+        var client = new StubGitHubClient();
+        client.Returns(
+            StubGitHubClient.Release(1, "repeater-v1.16.0", assetNames: ["Xiao_nRF52840.uf2"]),
+            StubGitHubClient.Release(2, "repeater-v1.17.1", assetNames: ["Xiao_nRF52840.uf2"]),
+            StubGitHubClient.Release(3, "repeater-v1.17.1-rak", assetNames: ["rak4631.uf2"]));
+
+        await using (var seed = this.Db.NewContext())
+        {
+            var sync = new ReleaseSyncService(
+                seed, client, new VersionSchemeRegistry(), new SyncGate(), this.Clock,
+                NullLogger<ReleaseSyncService>.Instance);
+            await sync.SyncAsync(await seed.Sources.FirstAsync(s => s.Slug == "meshcore-official"));
+        }
+
+        Guid boardId;
+        await using (var context = this.Db.NewContext())
+        {
+            var board = new Board { Id = Guid.NewGuid(), Name = "Xiao", CreatedAt = default, UpdatedAt = default };
+            context.Boards.Add(board);
+            context.BoardAssetPatterns.Add(new BoardAssetPattern
+            {
+                Id = Guid.NewGuid(),
+                BoardId = board.Id,
+                SourceId = (await context.Sources.FirstAsync(s => s.Slug == "meshcore-official")).Id,
+                Pattern = @"Xiao_nRF52840.*\.uf2$",
+            });
+            await context.SaveChangesAsync();
+            boardId = board.Id;
+        }
+
+        await using var verify = this.Db.NewContext();
+        var (service, snapshot, streamId) = await LoadAsync(verify);
+
+        var status = service.Evaluate(
+            snapshot, streamId, "1.16.0", VersionSortKey.FromDottedNumber("1.16.0"), boardId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.State, Is.EqualTo(UpdateState.UpdateAvailable));
+            Assert.That(status.MatchedAsset!.Name, Is.EqualTo("Xiao_nRF52840.uf2"));
+            Assert.That(status.MatchedAsset.DownloadUrl,
+                Is.EqualTo("https://github.test/repeater-v1.17.1/Xiao_nRF52840.uf2"));
+        });
+    }
+
+    [Test]
     public async Task An_installed_version_newer_than_anything_known_is_not_an_update()
     {
         await SeedOfficialAsync((1, "repeater-v1.17.1"));

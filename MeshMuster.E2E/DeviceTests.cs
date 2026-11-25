@@ -34,6 +34,14 @@ public class DeviceTests : TestBase
     }
 
     [Test]
+    public async Task Mikecarper_repeater_can_record_version_1_18_0_2()
+    {
+        await AddDeviceAsync("e2e-split-release", "repeater", "MeshCore (mikecarper)");
+        await RecordFlashAsync("1.18.0.2 (full-profiles", null);
+        Assert.That(await Page.InnerTextAsync("dl.detail"), Does.Contain("1.18.0.2 current"));
+    }
+
+    [Test]
     public async Task A_device_on_the_newest_release_reads_as_current()
     {
         var url = await AddDeviceAsync(

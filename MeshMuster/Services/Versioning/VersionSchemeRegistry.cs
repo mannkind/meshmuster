@@ -18,7 +18,7 @@ public class VersionSchemeRegistry
         this.Schemes = new Dictionary<string, IVersionScheme>(StringComparer.OrdinalIgnoreCase)
         {
             [MeshCoreOfficial] = new MeshCoreVersionScheme(),
-            [MeshCoreMikecarper] = new MeshCoreVersionScheme(),
+            [MeshCoreMikecarper] = new MeshCoreVersionScheme(mikecarper: true),
             [OtafixOltaco] = new OtafixVersionScheme(),
             [OtafixMikecarper] = new OtafixVersionScheme(),
         };

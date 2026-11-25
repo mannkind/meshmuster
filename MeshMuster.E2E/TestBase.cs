@@ -27,7 +27,9 @@ public class Harness
 
         GitHub.SetReleases("mikecarper", "MeshCore",
             (5, "v1.17.1.5-halo-keymind-cascade-dev-26303793", true, ["xiao_companion.uf2"]),
-            (6, "repeater-room-v1.17.1.5-halo-keymind-cascade-dev-26303793", true, ["xiao_repeater.uf2"]));
+            (6, "repeater-room-v1.17.1.5-halo-keymind-cascade-dev-26303793", true, ["xiao_repeater.uf2"]),
+            (10, "full-profiles-v1.18.0.2-halo-keymind-cascade-dev-a723af94", true,
+                ["Ebyte_EoRa-S3_Repeater-full-usb-wifi-ota-v1.18.0.2-halo-keymind-cascade-dev-a723af94.bin"]));
 
         GitHub.SetReleases("oltaco", "Adafruit_nRF52_Bootloader_OTAFIX",
             (7, "0.9.2-OTAFIX2.2-BP1.3", false, ["rak4631_bootloader.zip"]),
